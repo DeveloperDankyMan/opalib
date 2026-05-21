@@ -1,7 +1,7 @@
 """Unit tests for opalib.physics."""
 
 import unittest
-from src import (
+from opalib import (
     force,
     kinetic_energy,
     potential_energy,

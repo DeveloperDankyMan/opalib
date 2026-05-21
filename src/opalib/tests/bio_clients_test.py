@@ -1,4 +1,4 @@
-from src.bio_clients import _RealBioAdapter, MockBioCultureClient, FinalSparkAdapter, CL1Adapter
+from opalib.bio_clients import _RealBioAdapter, MockBioCultureClient, FinalSparkAdapter, CL1Adapter
 
 import os
 

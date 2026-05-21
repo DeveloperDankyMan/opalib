@@ -1,8 +1,8 @@
 """Tests for the format module."""
 
 import unittest
-import src.format as format
-import src.util as util
+import opalib.format as format
+import opalib.util as util
 
 
 class TestFormat(unittest.TestCase):

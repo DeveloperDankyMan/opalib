@@ -1,4 +1,4 @@
-from src import enum_extender
+from opalib import enum_extender
 
 Enums = enum_extender.Enums
 

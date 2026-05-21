@@ -1,7 +1,7 @@
 """Tests for the util module."""
 
 import unittest
-from src import util
+from opalib import util
 
 
 class TestUtil(unittest.TestCase):

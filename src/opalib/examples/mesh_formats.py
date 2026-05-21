@@ -1,4 +1,4 @@
-import src.format as F
+import opalib.format as F
 
 F.format("Point", F.struct([
     {"id": F.ID},

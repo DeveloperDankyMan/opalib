@@ -1,7 +1,7 @@
 """Tests for the libdeflate module."""
 
 import unittest
-from src import LibDeflate
+from opalib import LibDeflate
 
 
 class TestLibDeflate(unittest.TestCase):

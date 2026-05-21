@@ -1,7 +1,7 @@
 """Tests for the ieee754 module."""
 
 import unittest
-from src import ieee754
+from opalib import ieee754
 
 
 class TestIEEE754(unittest.TestCase):

@@ -1,7 +1,7 @@
 """Unit tests for opalib.units."""
 
 import unittest
-from src import convert, STUD_TO_METER, list_units, register_unit, supported_units
+from opalib import convert, STUD_TO_METER, list_units, register_unit, supported_units
 
 
 class TestUnits(unittest.TestCase):

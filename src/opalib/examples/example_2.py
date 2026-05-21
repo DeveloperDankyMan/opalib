@@ -1,8 +1,8 @@
-import src.format as format
-import src.util as util
-import src.http as http
-import src.web as web
-import src.format as F
+import opalib.format as format
+import opalib.util as util
+import opalib.http as http
+import opalib.web as web
+import opalib.format as F
 
 from .mesh_formats import *
 

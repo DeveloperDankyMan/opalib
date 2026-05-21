@@ -6,7 +6,7 @@ Tests core functionality including routing, request/response handling, and middl
 
 import unittest
 from io import BytesIO
-from src.web import (
+from opalib.web import (
     Application,
     Request,
     Response,

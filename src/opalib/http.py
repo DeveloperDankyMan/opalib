@@ -14,7 +14,7 @@ from typing import Any, Callable, Dict, Optional, Union
 from urllib.error import HTTPError, URLError
 from urllib.request import Request as UrlRequest, urlopen
 
-from src.promise import Promise
+from opalib.promise import Promise
 
 TIMEOUT = 120.0
 ERR_TIMED_OUT = "Request timed out at %d seconds."
