@@ -1,6 +1,6 @@
 [project]
 name = "opalib"
-version = "0.4.2"
+version = "0.5.2"
 description = "A library to do multiple things"
 authors = [
     { name="Donovan", email="donovandelisle7@gmail.com" }
