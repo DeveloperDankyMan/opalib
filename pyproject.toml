@@ -34,7 +34,6 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["src*"]
 
 [tool.bumpver]
 current_version = "0.4.0"
