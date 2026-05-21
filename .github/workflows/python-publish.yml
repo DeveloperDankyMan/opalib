@@ -9,12 +9,16 @@
 name: Upload Python Package
 
 on:
+  push:
+    branches:
+      - main # Change this to your default branch name if it is not main
   release:
     types: [published]
   workflow_dispatch: # <--- Add this exact line
 
 permissions:
   contents: read
+  id-token: write # Required for trusted publishing to PyPI
 
 jobs:
   release-build:
