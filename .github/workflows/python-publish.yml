@@ -162,6 +162,7 @@ jobs:
           prerelease: false
           
   release-build:
+    needs: bump-version
     runs-on: ubuntu-latest
 
     steps:
