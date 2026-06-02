@@ -1,6 +1,6 @@
 [project]
 name = "opalib"
-version = "0.1.0"
+version = "1.0.0"
 description = "A library to do multiple things"
 authors = [
     { name="Donovan", email="donovandelisle7@gmail.com" }
@@ -43,4 +43,4 @@ version_toml = [
     "pyproject.toml:project.version"
 ]
 # Defines the branch to monitor for releases
-build_command = "pip install build && python -m build"
+build_command = false # "pip install build && python -m build"
