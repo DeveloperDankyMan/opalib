@@ -43,4 +43,4 @@ version_toml = [
     "pyproject.toml:project.version"
 ]
 # Defines the branch to monitor for releases
-build_command = false # "pip install build && python -m build"
+build_command = "pip install build && python -m build"
