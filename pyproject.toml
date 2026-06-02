@@ -1,6 +1,6 @@
 [project]
 name = "opalib"
-version = "0.6.3"
+version = "0.6.4"
 description = "A library to do multiple things"
 authors = [
     { name="Donovan", email="donovandelisle7@gmail.com" }
@@ -23,7 +23,11 @@ classifiers = [
 ]
 urls = { "Repository" = "https://github.com/DeveloperDankyMan/opalib", "Homepage" = "https://github.com/DeveloperDankyMan/opalib" }
 
-dependencies = []
+dependencies = [
+    "numpy",
+    "genkit>=0.1.0",
+    "genkit-plugin-google-genai>=0.1.0",
+]
 
 [build-system]
 requires = ["setuptools", "wheel"]
