@@ -36,7 +36,7 @@ jobs:
       - name: Get previous commit
         id: prev-commit
         run: |
-          PREV_COMMIT=$(git rev-parse HEAD~1 || echo "HEAD")
+          PREV_COMMIT=${{ github.event.before }} # PREV_COMMIT=$(git rev-parse HEAD~1 || echo "HEAD")
           echo "prev-commit=$PREV_COMMIT" >> $GITHUB_OUTPUT
 
       - name: Get file changes
