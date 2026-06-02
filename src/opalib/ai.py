@@ -1,54 +1,42 @@
-import os
-from genkit import Genkit
-from genkit.plugins.google_genai import GoogleAI
+import random
+import requests
 
-# Initialize Genkit with the Google AI plugin
-ai = Genkit(
-    plugins=[GoogleAI()],
-    model='googleai/gemini-2.5-flash',
-)
-
-# Define the Genkit Flow accepting both the prompt and the persona behavior
-@ai.flow()
-async def _internal_ai_flow(input_data: dict) -> str:
-    """
-    Executes the prompt orchestration with Genkit, feeding the system persona.
-    """
-    user_prompt = input_data.get("prompt")
-    system_behavior = input_data.get("system_behavior")
-
-    response = await ai.generate(
-        system=system_behavior,  # <-- This tells Gemini exactly how to act!
-        prompt=user_prompt,
-    )
-    return response.text
-
-# Public user-facing function
 def ask_ai(prompt: str, act_as: str = "A helpful and accurate assistant.") -> str:
     """
-    Public entrypoint allowing users to define a custom persona behavior.
+    Public entrypoint for Opalib AI.
+    Requires absolutely NO API keys or configuration files.
     
     Args:
-        prompt (str): The question or message for the AI.
-        act_as (str): The system prompt/persona instructing how the AI should act.
+        prompt (str): The main request or question for the AI.
+        act_as (str): The system persona/instructions dictating the AI's behavior.
     """
-    if not os.environ.get("GEMINI_API_KEY"):
-        raise ValueError(
-            "Missing environment variable: 'GEMINI_API_KEY'. "
-            "Please obtain a free key at Google AI Studio."
-        )
-        
     if not prompt or not isinstance(prompt, str):
         raise ValueError("Prompt must be a non-empty string.")
 
-    # Package arguments into a dict for the flow
+    url = "https://text.pollinations.ai"
+    
+    # Structure the message payload including your system prompt behavior
     payload = {
-        "prompt": prompt,
-        "system_behavior": act_as
+        "messages": [
+            {"role": "system", "content": act_as},
+            {"role": "user", "content": prompt}
+        ],
+        "model": "openai",                    # Default high-quality fallback text model
+        "seed": random.randint(1, 99999999),  # Keeps results fresh and dynamic
+        "jsonMode": False,
+        "private": True
     }
 
     try:
-        result = ai.run_main(lambda: _internal_ai_flow(payload))
-        return result
-    except Exception as e:
-        return f"Opalib AI Error: Could not generate response. Details: {e}"
+        # Send a direct POST request to the public endpoint
+        response = requests.post(url, json=payload, timeout=30)
+        
+        if response.status_code == 200:
+            return response.text.strip()
+        else:
+            return f"Opalib AI Error: Server returned status code {response.status_code}"
+            
+    except requests.exceptions.Timeout:
+        return "Opalib AI Error: The connection timed out. Please try again."
+    except requests.exceptions.RequestException as e:
+        return f"Opalib AI Error: Network problem encountered. Details: {e}"
