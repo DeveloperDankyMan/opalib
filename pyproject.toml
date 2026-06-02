@@ -36,3 +36,11 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.semantic_release]
+# Tell PSR to find and replace the version inside pyproject.toml
+version_toml = [
+    "pyproject.toml:project.version"
+]
+# Defines the branch to monitor for releases
+build_command = "pip install build && python -m build"
