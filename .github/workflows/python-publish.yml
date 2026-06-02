@@ -10,45 +10,46 @@ name: Upload Python Package
 
 on:
   push:
-    tags:
-        - 'v*'
     branches:
-      - main # Change this to your default branch name if it is not main
-  release:
-    types: [published]
-  workflow_dispatch: # <--- Add this exact line
+      - main # Automatically runs whenever you merge code changes into main
 
 permissions:
-  contents: read
-  id-token: write # Required for trusted publishing to PyPI
+  contents: write # Crucial: Allows the tool to automatically create and push Git tags
+  id-token: write # Mandatory for PyPI Trusted Publishing
 
 jobs:
-  release-build:
+  release:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v4
-      
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # 👈 CRITICAL: Pulls all tags so setuptools-scm calculates versioning correctly
+          fetch-depth: 0 # Fetches full history so commit logs can be read
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
+      # 1. Let the system scan commit logs and calculate the correct version bump
+      - name: Python Semantic Release
+        id: semantic-release
+        uses: python-semantic-release/python-semantic-release@v9
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 2. Build the package wheel distributions using the newly calculated version
       - name: Build release distributions
         run: |
-          # NOTE: put your own distribution build steps here.
+          python -m pip install --upgrade pip
           python -m pip install build
           python -m build
 
-      - name: Upload distributions
-        uses: actions/upload-artifact@v4
+      # 3. Publish directly to PyPI securely
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          name: release-dists
-          path: dist/
+          skip-existing: true
 
   pypi-publish:
     runs-on: ubuntu-latest
