@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Fetches full history so it can read commit messages
+          fetch-tags: true
 
       - name: Python Semantic Release
         uses: python-semantic-release/publish-action@v9.16.1
