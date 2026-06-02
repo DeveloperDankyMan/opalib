@@ -10,6 +10,8 @@ name: Upload Python Package
 
 on:
   push:
+    tags:
+        - 'v*'
     branches:
       - main # Change this to your default branch name if it is not main
   release:
