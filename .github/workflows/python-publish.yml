@@ -117,6 +117,8 @@ jobs:
     needs: detect-changes
     runs-on: ubuntu-latest
     if: needs.detect-changes.outputs.should-bump == 'true'
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout code
