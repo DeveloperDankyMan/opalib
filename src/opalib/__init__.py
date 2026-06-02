@@ -5,6 +5,8 @@
 import os
 import importlib
 
+print("This is opalib.")
+
 __all__ = []
 
 pkg_dir = os.path.dirname(__file__)
