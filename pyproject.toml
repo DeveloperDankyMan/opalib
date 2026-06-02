@@ -24,7 +24,7 @@ classifiers = [
 urls = { "Repository" = "https://github.com/DeveloperDankyMan/opalib", "Homepage" = "https://github.com/DeveloperDankyMan/opalib" }
 
 dependencies = [
-    "requests,
+    "requests",
 ]
 
 [build-system]
