@@ -1,0 +1,31 @@
+name: Detect SemVer Bump
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  detect-version:
+    runs-on: ubuntu-latest
+    outputs:
+      bump_type: ${{ steps.semver.outputs.bump_type }} # Exports 'major', 'minor', or 'patch'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required to fetch all tags and history
+
+      - name: Determine Version Change
+        id: semver
+        uses: paulhatch/semantic-version@v5.4.0
+        with:
+          # Define custom patterns if you want to override defaults
+          major_pattern: "(MAJOR)"
+          minor_pattern: "feat:"
+          format: "${major}.${minor}.${patch}"
+
+      - name: Log the Bump Type
+        run: |
+          echo "The detected bump type is: ${{ steps.semver.outputs.bump_type }}"
+          echo "The upcoming version will be: ${{ steps.semver.outputs.version }}"
