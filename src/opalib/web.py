@@ -15,6 +15,7 @@ from pathlib import Path
 from wsgiref.simple_server import make_server
 import traceback
 
+print("Hello World!")
 
 class Request:
     """Represents an HTTP request."""
