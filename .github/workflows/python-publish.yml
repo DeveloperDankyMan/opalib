@@ -64,39 +64,48 @@ jobs:
           ADDED="${{ steps.files.outputs.added }}"
           MODIFIED="${{ steps.files.outputs.modified }}"
           DELETED="${{ steps.files.outputs.deleted }}"
-          
+      
           CURRENT_VERSION=$(grep -m1 'version = ' pyproject.toml | sed 's/version = "//' | sed 's/".*//')
           echo "current-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-          
+      
           MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
           MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
           PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
-          
+      
+          # Define your core files here
+          CORE_FILES="ai.py ollama_integration.py pipeline.py utils.py"
+      
+          # Convert to regex: ai.py|ollama_integration.py|pipeline.py|utils.py
+          CORE_REGEX=$(echo "$CORE_FILES" | sed 's/ /|/g')
+      
           VERSION_TYPE="patch"
           SHOULD_BUMP="false"
-          
-          # Major: Core files deleted
-          if echo "$DELETED" | grep -qE "(ollama_integration|ai\.py)"; then
+      
+          # Major: core files deleted
+          if echo "$DELETED" | grep -qE "$CORE_REGEX"; then
             VERSION_TYPE="major"
             SHOULD_BUMP="true"
-          # Minor: New Python modules
-          elif echo "$ADDED" | grep -qE "src/opalib/.*\.py$"; then
+      
+          # Minor: new core files added
+          elif echo "$ADDED" | grep -qE "$CORE_REGEX"; then
             VERSION_TYPE="minor"
             SHOULD_BUMP="true"
-          # Minor: API changes in core files
-          elif echo "$MODIFIED" | grep -qE "(ollama_integration|ai\.py)"; then
+      
+          # Minor or patch: core files modified
+          elif echo "$MODIFIED" | grep -qE "$CORE_REGEX"; then
             if git diff ${{ steps.prev-commit.outputs.prev-commit }} HEAD -- $MODIFIED | grep -qE "^\+.*def |^\-.*def "; then
               VERSION_TYPE="minor"
             else
               VERSION_TYPE="patch"
             fi
             SHOULD_BUMP="true"
-          # Patch: Other Python files
+      
+          # Patch: any other Python file
           elif echo "$MODIFIED" | grep -qE "src/opalib/.*\.py$"; then
             VERSION_TYPE="patch"
             SHOULD_BUMP="true"
           fi
-          
+      
           if [ "$SHOULD_BUMP" = "true" ]; then
             if [ "$VERSION_TYPE" = "major" ]; then
               NEW_VERSION="$((MAJOR+1)).0.0"
@@ -108,10 +117,11 @@ jobs:
           else
             NEW_VERSION=$CURRENT_VERSION
           fi
-          
+      
           echo "version-type=$VERSION_TYPE" >> $GITHUB_OUTPUT
           echo "should-bump=$SHOULD_BUMP" >> $GITHUB_OUTPUT
           echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
 
   bump-version:
     needs: detect-changes
