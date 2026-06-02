@@ -1,6 +1,6 @@
 [project]
 name = "opalib"
-version = "1.0.0"
+version = "0.6.5"
 description = "A library to do multiple things"
 authors = [
     { name="Donovan", email="donovandelisle7@gmail.com" }
@@ -37,10 +37,15 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.semantic_release]
-# Tell PSR to find and replace the version inside pyproject.toml
-version_toml = [
-    "pyproject.toml:project.version"
-]
-# Defines the branch to monitor for releases
-build_command = "pip install build && python -m build"
+[tool.bumpversion]
+current_version = "1.0.0" # Match your exact current version
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
+serialize = ["{major}.{minor}.{patch}"]
+search = "version = \"{current_version}\""
+replace = "version = \"{new_version}\""
+commit = true
+tag = true
+message = "chore(release): bump version {current_version} → {new_version}"
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
