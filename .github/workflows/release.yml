@@ -1,22 +1,21 @@
-name: Semantic Release
+name: Automated Version Bump
 
 on:
   push:
     branches:
-      - main
+      - main  # This runs every time code is merged or pushed to main
 
 jobs:
-  release:
+  bump-version:
     runs-on: ubuntu-latest
     concurrency: release
     permissions:
-      id-token: write
-      contents: write
+      contents: write # Allows the workflow to push the edited pyproject.toml file
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Pull all history for commit parsing
+          fetch-depth: 0 # Fetches full history so it can read commit messages
 
       - name: Python Semantic Release
         uses: python-semantic-release/publish-action@v9.16.1
