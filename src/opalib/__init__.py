@@ -7,6 +7,8 @@ import importlib
 
 __all__ = []
 
+print("Opalib - a package API.")
+
 pkg_dir = os.path.dirname(__file__)
 for file in os.listdir(pkg_dir):
     if file.endswith(".py") and file != "__init__.py":
