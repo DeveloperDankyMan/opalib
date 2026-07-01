@@ -1,93 +1,53 @@
-"""opalib.units - unit conversion helpers for length and custom measures."""
+"""
+opalib.units
+Unit conversion helpers for length and custom measures.
+"""
 
-from typing import Dict, Iterable, Optional, Sequence, Tuple
-
-STUD_TO_METER = 0.28
-"""Conversion factor from studs to meters."""
-
-_UNIT_FACTORS: Dict[str, float] = {}
-
-_DEFAULT_UNIT_DEFINITIONS: Dict[str, Tuple[float, Tuple[str, ...]]] = {
-    "meter": (1.0, ("meters", "m")),
-    "stud": (STUD_TO_METER, ("studs", "st")),
-    "foot": (0.3048, ("feet", "ft")),
-    "inch": (0.0254, ("inches", "in")),
-    "kilometer": (1000.0, ("kilometers", "km")),
+# Base length conversion factors to meters
+LENGTH_TO_METERS = {
+    "mm": 0.001,
+    "cm": 0.01,
+    "m": 1.0,
+    "km": 1000.0,
+    "in": 0.0254,
+    "ft": 0.3048,
+    "yd": 0.9144,
+    "mi": 1609.344
 }
 
-
-def _register_default_units() -> None:
-    for name, (factor, aliases) in _DEFAULT_UNIT_DEFINITIONS.items():
-        _UNIT_FACTORS[name] = factor
-        for alias in aliases:
-            _UNIT_FACTORS[alias] = factor
-
-_register_default_units()
-
-__all__ = [
-    "STUD_TO_METER",
-    "to_meters",
-    "from_meters",
-    "convert",
-    "register_unit",
-    "list_units",
-    "supported_units",
-]
-
-
-def _normalize_unit(unit: str) -> str:
-    return unit.strip().lower()
-
-
-def _get_factor(unit: str) -> float:
-    unit_key = _normalize_unit(unit)
-    if unit_key not in _UNIT_FACTORS:
-        supported = ", ".join(sorted(supported_units()))
-        raise ValueError(
-            f"Unsupported unit: {unit!r}. Supported units: {supported}"
-        )
-    return _UNIT_FACTORS[unit_key]
-
-
-def to_meters(value: float, unit: str) -> float:
-    """Convert a value from a supported unit to meters."""
-    return value * _get_factor(unit)
-
-
-def from_meters(value: float, unit: str) -> float:
-    """Convert a value in meters to a supported unit."""
-    return value / _get_factor(unit)
-
-
-def convert(value: float, from_unit: str, to_unit: str) -> float:
-    """Convert a value between two supported units."""
-    meters = to_meters(value, from_unit)
-    return from_meters(meters, to_unit)
-
-
-def register_unit(name: str, factor_to_meters: float, aliases: Optional[Sequence[str]] = None) -> None:
-    """Register a custom unit conversion factor to meters.
-
-    Args:
-        name: Canonical unit name.
-        factor_to_meters: Conversion factor from the unit to meters.
-        aliases: Optional alternate spellings for the same unit.
+def convert_length(value: float, from_unit: str, to_unit: str) -> float:
     """
-    if factor_to_meters <= 0:
-        raise ValueError("Conversion factor must be positive")
+    Converts a length value from one unit to another.
+    
+    :param value: The numerical value to convert.
+    :param from_unit: The unit to convert from (e.g., 'mi', 'km').
+    :param to_unit: The unit to convert to (e.g., 'm', 'ft').
+    :return: The converted length value.
+    """
+    from_unit = from_unit.lower()
+    to_unit = to_unit.lower()
+    
+    if from_unit not in LENGTH_TO_METERS or to_unit not in LENGTH_TO_METERS:
+        raise ValueError(f"Unsupported length unit. Choose from: {list(LENGTH_TO_METERS.keys())}")
+        
+    # Convert to standard meters, then to target unit
+    value_in_meters = value * LENGTH_TO_METERS[from_unit]
+    return value_in_meters / LENGTH_TO_METERS[to_unit]
 
-    unit_key = _normalize_unit(name)
-    _UNIT_FACTORS[unit_key] = factor_to_meters
-    if aliases:
-        for alias in aliases:
-            _UNIT_FACTORS[_normalize_unit(alias)] = factor_to_meters
 
-
-def supported_units() -> Iterable[str]:
-    """Return all supported unit names and aliases."""
-    return sorted(_UNIT_FACTORS)
-
-
-def list_units() -> Dict[str, float]:
-    """Return all registered unit conversion factors."""
-    return {unit: _UNIT_FACTORS[unit] for unit in supported_units()}
+def convert_custom(value: float, from_scale: float, to_scale: float) -> float:
+    """
+    Generic converter for custom measures using base scales (e.g., ratios, 
+    batch conversions, or arbitrary units).
+    
+    $result = value \times \frac{from\_scale}{to\_scale}$
+    
+    :param value: The amount of the custom measure you have.
+    :param from_scale: The base ratio or unit size of your starting measure.
+    :param to_scale: The base ratio or unit size of your target measure.
+    :return: The converted custom value.
+    """
+    if to_scale == 0:
+        raise ValueError("The 'to_scale' cannot be zero.")
+        
+    return value * (from_scale / to_scale)
