@@ -1,197 +1,155 @@
 """
-Simplified AI Module - Uses Ollama or Pollinations
+opalib.ai - Access artificial intelligence for free, including making sessions; we have our own ways of doing it. 
+Without any other Python installation packages.
 """
 
-import random
-import requests
-from typing import List, Dict, Optional
+import os
+import json
+import time
+import ssl
+import http.cookiejar
+import urllib.request
+import urllib.error
 
-# Try to import Ollama, fall back to Pollinations
-try:
-    from src.opalib.ollama_integration import OllamaClient, OllamaAgent
-    OLLAMA_AVAILABLE = True
-except ImportError:
-    OLLAMA_AVAILABLE = False
-
-
-def ask_ai(prompt: str, act_as: str = "A helpful and accurate assistant.",
-           use_ollama: bool = True) -> str:
-    """
-    Query AI with automatic Ollama/Pollinations fallback.
+class AutomatedSessionTracker:
+    """Manages an automated cookie jar and dynamically handles browser headers."""
     
-    Args:
-        prompt: Main request or question.
-        act_as: System persona/instructions.
-        use_ollama: Prefer Ollama if available.
-    
-    Returns:
-        AI response.
-    """
-    if not prompt or not isinstance(prompt, str):
-        raise ValueError("Prompt must be a non-empty string.")
-    
-    # Try Ollama first
-    if use_ollama and OLLAMA_AVAILABLE:
+    def __init__(self):
+        # Create an automated cookie container that tracks updates across web calls
+        self.cookie_jar = http.cookiejar.CookieJar()
+        
+        # Build a custom network opener equipped to handle cookies and ignore basic SSL blocks
+        ssl_context = ssl._create_unverified_context()
+        cookie_handler = urllib.request.HTTPCookieProcessor(self.cookie_jar)
+        ssl_handler = urllib.request.HTTPSHandler(context=ssl_context)
+        
+        self.opener = urllib.request.build_opener(cookie_handler, ssl_handler)
+        
+        # Base browser footprint to pass through standard edge walls
+        self.base_headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Origin": "https://duckduckgo.com",
+            "Referer": "https://duckduckgo.com"
+        }
+        
+    def initialize_session(self, handshake_url: str, custom_headers: dict = None) -> bool:
+        """Hits the initial splash page to harvest tracking cookies before making AI requests."""
+        headers = self.base_headers.copy()
+        if custom_headers:
+            headers.update(custom_headers)
+            
+        req = urllib.request.Request(handshake_url, headers=headers, method="GET")
         try:
-            client = OllamaClient()
-            messages = [
-                {"role": "system", "content": act_as},
-                {"role": "user", "content": prompt}
-            ]
-            return client.chat(messages)
+            with self.opener.open(req, timeout=10) as response:
+                print("📡 Handshake Successful. Captured Cookies:")
+                for cookie in self.cookie_jar:
+                    print(f" 🍪 {cookie.name} = {cookie.value[:20]}...")
+                return True
         except Exception as e:
-            print(f"Ollama failed: {e}. Falling back to Pollinations...")
-    
-    # Fall back to Pollinations (free cloud API)
-    return _ask_pollinations(prompt, act_as)
+            print(f"⚠️ Handshake Failed: {str(e)}")
+            return False
 
-
-def _ask_pollinations(prompt: str, act_as: str) -> str:
-    """
-    Query Pollinations AI (free, no API key required).
-    
-    Args:
-        prompt: Input prompt.
-        act_as: System instructions.
-    
-    Returns:
-        Response text.
-    """
-    url = "https://text.pollinations.ai"
-    
-    payload = {
-        "messages": [
-            {"role": "system", "content": act_as},
-            {"role": "user", "content": prompt}
-        ],
-        "model": "openai",
-        "seed": random.randint(1, 99999999),
-        "jsonMode": False,
-        "private": True
-    }
-
-    try:
-        response = requests.post(url, json=payload, timeout=30)
+    def send_authenticated_post(self, url: str, payload: dict, custom_headers: dict = None) -> str:
+        """Sends the AI text prompt with all accumulated tracking cookies automatically attached."""
+        headers = self.base_headers.copy()
+        headers["Content-Type"] = "application/json"
+        if custom_headers:
+            headers.update(custom_headers)
+            
+        json_data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(url, data=json_data, headers=headers, method="POST")
         
-        if response.status_code == 200:
-            return response.text.strip()
-        else:
-            return f"Error: Server returned status code {response.status_code}"
-    
-    except requests.exceptions.Timeout:
-        return "Error: The connection timed out."
-    except requests.exceptions.RequestException as e:
-        return f"Error: Network problem encountered. Details: {e}"
+        try:
+            with self.opener.open(req, timeout=15) as response:
+                raw_body = response.read().decode("utf-8")
+                return raw_body
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode("utf-8")
+            return f"⚠️ HTTP Error {e.code}: {error_body}"
+        except Exception as e:
+            return f"⚠️ Network Execution Error: {str(e)}"
 
 
-def create_ollama_agent(name: str, model: str = "mistral",
-                       system_prompt: str = None) -> Optional[OllamaAgent]:
-    """
-    Create an Ollama-powered agent.
-    
-    Args:
-        name: Agent name.
-        model: Ollama model to use.
-        system_prompt: System instructions.
-    
-    Returns:
-        OllamaAgent or None if Ollama unavailable.
-    """
-    if not OLLAMA_AVAILABLE:
-        print("Ollama not available. Install with: pip install ollama")
-        return None
-    
-    return OllamaAgent(name, model, system_prompt)
-
-
-def create_hybrid_agent(name: str, prefer_ollama: bool = True,
-                       ollama_model: str = "mistral",
-                       system_prompt: str = None):
-    """
-    Create an agent that uses Ollama if available, falls back to Pollinations.
-    
-    Args:
-        name: Agent name.
-        prefer_ollama: Prefer Ollama over Pollinations.
-        ollama_model: Ollama model if using it.
-        system_prompt: System instructions.
-    
-    Returns:
-        HybridAgent wrapper.
-    """
-    return HybridAgent(name, prefer_ollama, ollama_model, system_prompt)
-
-
-class HybridAgent:
-    """Agent that uses Ollama or Pollinations based on availability."""
-    
-    def __init__(self, name: str, prefer_ollama: bool = True,
-                 ollama_model: str = "mistral",
-                 system_prompt: str = None):
+class AIAgent:
+    """An AI Agent that leverages the automated tracker for its backend requests."""
+    def __init__(self, name: str, role: str, target_model: str, tracker: AutomatedSessionTracker):
         self.name = name
-        self.prefer_ollama = prefer_ollama
-        self.ollama_model = ollama_model
-        self.system_prompt = system_prompt or "You are a helpful AI assistant."
-        self.conversation_history = []
-        self.using_ollama = False
+        self.role = role
+        self.target_model = target_model
+        self.tracker = tracker
+        self.chat_history = []
         
-        # Try to use Ollama
-        if prefer_ollama and OLLAMA_AVAILABLE:
-            try:
-                self.ollama_agent = OllamaAgent(
-                    name, ollama_model, system_prompt
-                )
-                self.using_ollama = True
-            except:
-                self.using_ollama = False
-    
-    def chat(self, message: str) -> str:
-        """
-        Chat with hybrid agent.
-        
-        Args:
-            message: User message.
-        
-        Returns:
-            Agent response.
-        """
-        self.conversation_history.append({
-            "role": "user",
-            "content": message
+        # Enforce agent context
+        self.chat_history.append({
+            "role": "system", 
+            "content": f"Your name is {self.name}. Your role: {self.role}. Stay in character."
         })
+
+    def ask(self, message: str) -> str:
+        """Prepares history format and coordinates with the live tracker infrastructure."""
+        self.chat_history.append({"role": "user", "content": message})
         
-        if self.using_ollama:
-            response = self.ollama_agent.chat(message)
-        else:
-            # Use Pollinations
-            response = _ask_pollinations(message, self.system_prompt)
+        # Target endpoint using standard public endpoints (e.g., DuckDuckGo AI gateway routing)
+        api_url = "https://duckduckgo.com/duckchat/v1/chat"
         
-        self.conversation_history.append({
-            "role": "assistant",
-            "content": response
-        })
+        # Format conversation payload
+        payload = {
+            "model": "meta-llama/Llama-3-70b-instruct" if "llama" in self.target_model else "gpt-4o-mini",
+            "messages": self.chat_history
+        }
         
-        return response
-    
-    def clear_history(self):
-        """Clear conversation history."""
-        self.conversation_history = []
-    
-    def get_history(self) -> List[Dict]:
-        """Get conversation history."""
-        return self.conversation_history
-    
-    def switch_backend(self, use_ollama: bool = None):
-        """
-        Switch between Ollama and Pollinations.
+        # Add required tracking tokens in headers if needed
+        v_token = ""
+        for cookie in self.tracker.cookie_jar:
+            if cookie.name == "vqd":
+                v_token = cookie.value
+                
+        headers = {"x-vqd-4": v_token} if v_token else {}
         
-        Args:
-            use_ollama: True for Ollama, False for Pollinations.
-        """
-        if use_ollama and OLLAMA_AVAILABLE and not self.using_ollama:
-            self.ollama_agent = OllamaAgent(
-                self.name, self.ollama_model, self.system_prompt
-            )
-            self.using_ollama = True
-        elif not use_ollama:
-            self.using_ollama = False
+        # Dispatch request through our tracking layer
+        raw_response = self.tracker.send_authenticated_post(api_url, payload, custom_headers=headers)
+        
+        # Quick fallback processing for streaming or raw text formats
+        try:
+            # Look for classic OpenAI style JSON responses
+            data = json.loads(raw_response)
+            reply = data["choices"][0]["message"]["content"]
+        except Exception:
+            # Handle server raw stream chunk responses if JSON parsing fails directly
+            if "⚠️" in raw_response:
+                reply = raw_response
+            else:
+                reply = "[Parsing Response]: Server layout updated or streaming block detected."
+
+        self.chat_history.append({"role": "assistant", "content": reply})
+        return reply
+
+
+class AgentSession:
+    """Orchestrates conversations between cookie-tracked agents."""
+    def __init__(self, session_name: str, tracker: AutomatedSessionTracker):
+        self.session_name = session_name
+        self.tracker = tracker
+        self.agents = []
+
+    def add_agent(self, agent: AIAgent):
+        self.agents.append(agent)
+        print(f"🔄 Registered Tracker Agent: [{agent.name}] Target: ({agent.target_model})")
+
+    def run_discussion(self, topic: str, rounds: int = 1):
+        print(f"\n🚀 Session '{self.session_name}' Active\nTopic: {topic}\n" + "="*60)
+        
+        current_context = f"The active topic is: {topic}. Give your professional assessment."
+        
+        for r in range(rounds):
+            for agent in self.agents:
+                print(f"📡 {agent.name} is executing a cookie-authenticated request...")
+                response = agent.ask(current_context)
+                
+                print(f"\033[96m[{agent.name}]\033[0m: {response}\n")
+                
+                current_context = f"{agent.name} stated: '{response}'. Address this statement directly."
+                time.sleep(2) # Protect against rapid-fire IP ban rules
+
