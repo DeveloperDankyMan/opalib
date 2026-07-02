@@ -1,5 +1,5 @@
 """
-promise.py — A continuation‑style Promise system inspired by promise.lua,
+opalib.promise — A continuation‑style Promise system inspired by promise.lua,
 rewritten for Python with thread‑safety, clearer semantics, and safer dispatch.
 """
 
