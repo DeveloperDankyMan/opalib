@@ -76,16 +76,16 @@ class Promise:
         if kwargs:
             raise TypeError("Promise call only accepts positional arguments")
         arg = args[0] if len(args) == 1 else args
-        return self.Continue(arg)
+        return self.continue(arg)
 
-    def Then(self, callback: Callable[["Promise", Any], Any]) -> "Promise":
+    def then(self, callback: Callable[["Promise", Any], Any]) -> "Promise":
         self._actions.append(callback)
         return self
 
-    def Else(self, callback: Callable[["Promise", Any], Any]) -> "Promise":
-        return self.OnError().Then(callback)
+    def else(self, callback: Callable[["Promise", Any], Any]) -> "Promise":
+        return self.on_error().then(callback)
 
-    def OnError(self) -> "Promise":
+    def on_error(self) -> "Promise":
         on_error = object.__getattribute__(self, "on_error")
         if on_error is None:
             on_error = Promise(self.state)
@@ -93,7 +93,7 @@ class Promise:
             object.__setattr__(on_error, "predecessor", self)
         return on_error
 
-    def Silent(self) -> "Promise":
+    def silent(self) -> "Promise":
         object.__setattr__(self, "silent", True)
         return self
 
@@ -169,10 +169,10 @@ class Promise:
                 if predecessor is not None:
                     caller = object.__getattribute__(predecessor, "caller")
                     if caller is not None:
-                        caller.ThrowAsync(arg, msg=self.msg)
+                        caller.throw_async(arg, msg=self.msg)
                 caller = object.__getattribute__(self, "caller")
                 if caller is not None:
-                    caller.ResumeAsync(arg)
+                    caller.resume_async(arg)
                 return arg
 
             op = object.__getattribute__(self, "after")
@@ -180,61 +180,61 @@ class Promise:
 
         return arg
 
-    def ReturnAsync(self, arg: Any = None) -> threading.Thread:
+    def return_async(self, arg: Any = None) -> threading.Thread:
         caller = object.__getattribute__(self, "caller")
         if caller is None:
             raise RuntimeError("No caller available for ReturnAsync")
-        return caller.ResumeAsync(arg)
+        return caller.resume_async(arg)
 
-    def EscalateAsync(self, arg: Any = None) -> threading.Thread:
+    def escalate_async(self, arg: Any = None) -> threading.Thread:
         predecessor = object.__getattribute__(self, "predecessor")
         if predecessor is None:
             raise RuntimeError("No predecessor available for EscalateAsync")
         caller = object.__getattribute__(predecessor, "caller")
         if caller is None:
             raise RuntimeError("No caller available for EscalateAsync")
-        return caller.ThrowAsync(arg, msg=self.msg)
+        return caller.throw_async(arg, msg=self.msg)
 
-    def Continue(self, arg: Any = None) -> Any:
+    def continue(self, arg: Any = None) -> Any:
         return self._Dispatch(OP.CONTINUE, arg)
 
-    def Yield(self) -> None:
+    def yield(self) -> None:
         object.__setattr__(self, "after", OP.NONE)
 
-    def ContinueAsync(self, arg: Any = None) -> threading.Thread:
+    def continue_async(self, arg: Any = None) -> threading.Thread:
         return _spawn(self._Dispatch, OP.CONTINUE, arg)
 
-    def Throw(self, arg: Any = None, msg: Any = None) -> Any:
+    def throw(self, arg: Any = None, msg: Any = None) -> Any:
         return self._Dispatch(OP.THROW, arg, msg=msg)
 
-    def ThrowAsync(self, arg: Any = None, msg: Any = None) -> threading.Thread:
+    def throw_async(self, arg: Any = None, msg: Any = None) -> threading.Thread:
         return _spawn(self._Dispatch, OP.THROW, arg, msg=msg)
 
-    def Repeat(self, arg: Any = None) -> Any:
+    def repeat(self, arg: Any = None) -> Any:
         return self._Dispatch(OP.REPEAT, arg)
 
-    def RepeatAsync(self, arg: Any = None) -> threading.Thread:
+    def repeat_async(self, arg: Any = None) -> threading.Thread:
         return _spawn(self._Dispatch, OP.REPEAT, arg)
 
-    def Resume(self, arg: Any = None) -> Any:
+    def resume(self, arg: Any = None) -> Any:
         return self._Dispatch(OP.RESUME, arg)
 
-    def ResumeAsync(self, arg: Any = None) -> threading.Thread:
+    def resume_async(self, arg: Any = None) -> threading.Thread:
         return _spawn(self._Dispatch, OP.RESUME, arg)
 
-    def Reset(self) -> None:
+    def reset(self) -> None:
         object.__setattr__(self, "i", 1)
 
-    def Stop(self) -> None:
+    def stop(self) -> None:
         self.Yield()
         self.Reset()
 
-    def RetryAsync(self, arg: Any = None) -> threading.Thread:
+    def retry_async(self, arg: Any = None) -> threading.Thread:
         predecessor = object.__getattribute__(self, "predecessor")
         if predecessor is None:
             raise RuntimeError("No predecessor available for RetryAsync")
         predecessor.Reset()
-        return predecessor.ContinueAsync(arg)
+        return predecessor.continue_async(arg)
 
 
 __all__ = ["Promise", "OP", "dispatch", "set_dispatch"]
