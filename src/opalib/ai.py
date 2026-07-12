@@ -1,84 +1,27 @@
 """
-opalib.ai - Access artificial intelligence for free, including making sessions; we have our own ways of doing it. 
-Without any other Python installation packages.
+opalib.ai - Access artificial intelligence for free using g4f (gpt4free).
+No API keys required. Works with multiple free AI providers.
+
+Installation: pip install g4f
 """
 
-import os
-import json
 import time
-import ssl
-import http.cookiejar
-import urllib.request
-import urllib.error
+from typing import Optional
 
-class AutomatedSessionTracker:
-    """Manages an automated cookie jar and dynamically handles browser headers."""
-    
-    def __init__(self):
-        # Create an automated cookie container that tracks updates across web calls
-        self.cookie_jar = http.cookiejar.CookieJar()
-        
-        # Build a custom network opener equipped to handle cookies and ignore basic SSL blocks
-        ssl_context = ssl._create_unverified_context()
-        cookie_handler = urllib.request.HTTPCookieProcessor(self.cookie_jar)
-        ssl_handler = urllib.request.HTTPSHandler(context=ssl_context)
-        
-        self.opener = urllib.request.build_opener(cookie_handler, ssl_handler)
-        
-        # Base browser footprint to pass through standard edge walls
-        self.base_headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            "Accept": "application/json, text/plain, */*",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Origin": "https://duckduckgo.com",
-            "Referer": "https://duckduckgo.com"
-        }
-        
-    def initialize_session(self, handshake_url: str, custom_headers: dict = None) -> bool:
-        """Hits the initial splash page to harvest tracking cookies before making AI requests."""
-        headers = self.base_headers.copy()
-        if custom_headers:
-            headers.update(custom_headers)
-            
-        req = urllib.request.Request(handshake_url, headers=headers, method="GET")
-        try:
-            with self.opener.open(req, timeout=10) as response:
-                print("📡 Handshake Successful. Captured Cookies:")
-                for cookie in self.cookie_jar:
-                    print(f" 🍪 {cookie.name} = {cookie.value[:20]}...")
-                return True
-        except Exception as e:
-            print(f"⚠️ Handshake Failed: {str(e)}")
-            return False
-
-    def send_authenticated_post(self, url: str, payload: dict, custom_headers: dict = None) -> str:
-        """Sends the AI text prompt with all accumulated tracking cookies automatically attached."""
-        headers = self.base_headers.copy()
-        headers["Content-Type"] = "application/json"
-        if custom_headers:
-            headers.update(custom_headers)
-            
-        json_data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(url, data=json_data, headers=headers, method="POST")
-        
-        try:
-            with self.opener.open(req, timeout=15) as response:
-                raw_body = response.read().decode("utf-8")
-                return raw_body
-        except urllib.error.HTTPError as e:
-            error_body = e.read().decode("utf-8")
-            return f"⚠️ HTTP Error {e.code}: {error_body}"
-        except Exception as e:
-            return f"⚠️ Network Execution Error: {str(e)}"
+try:
+    from g4f.client import Client
+except ImportError:
+    raise ImportError("g4f is required. Install it with: pip install g4f")
 
 
 class AIAgent:
-    """An AI Agent that leverages the automated tracker for its backend requests."""
-    def __init__(self, name: str, role: str, target_model: str, tracker: AutomatedSessionTracker):
+    """An AI Agent powered by g4f for free AI access without API keys."""
+    
+    def __init__(self, name: str, role: str, target_model: str = "gpt-4"):
         self.name = name
         self.role = role
         self.target_model = target_model
-        self.tracker = tracker
+        self.client = Client()
         self.chat_history = []
         
         # Enforce agent context
@@ -86,70 +29,77 @@ class AIAgent:
             "role": "system", 
             "content": f"Your name is {self.name}. Your role: {self.role}. Stay in character."
         })
-
+    
     def ask(self, message: str) -> str:
-        """Prepares history format and coordinates with the live tracker infrastructure."""
+        """Send a message and get a response from the AI."""
         self.chat_history.append({"role": "user", "content": message})
         
-        # Target endpoint using standard public endpoints (e.g., DuckDuckGo AI gateway routing)
-        api_url = "https://duckduckgo.com/duckchat/v1/chat"
-        
-        # Format conversation payload
-        payload = {
-            "model": "meta-llama/Llama-3-70b-instruct" if "llama" in self.target_model else "gpt-4o-mini",
-            "messages": self.chat_history
-        }
-        
-        # Add required tracking tokens in headers if needed
-        v_token = ""
-        for cookie in self.tracker.cookie_jar:
-            if cookie.name == "vqd":
-                v_token = cookie.value
-                
-        headers = {"x-vqd-4": v_token} if v_token else {}
-        
-        # Dispatch request through our tracking layer
-        raw_response = self.tracker.send_authenticated_post(api_url, payload, custom_headers=headers)
-        
-        # Quick fallback processing for streaming or raw text formats
         try:
-            # Look for classic OpenAI style JSON responses
-            data = json.loads(raw_response)
-            reply = data["choices"][0]["message"]["content"]
-        except Exception:
-            # Handle server raw stream chunk responses if JSON parsing fails directly
-            if "⚠️" in raw_response:
-                reply = raw_response
-            else:
-                reply = "[Parsing Response]: Server layout updated or streaming block detected."
-
+            # Use g4f to get response (no API key needed)
+            response = self.client.chat.completions.create(
+                model=self.target_model,
+                messages=self.chat_history,
+                timeout=30
+            )
+            
+            reply = response.choices[0].message.content
+            
+        except Exception as e:
+            reply = f"⚠️ Error: {str(e)}"
+        
         self.chat_history.append({"role": "assistant", "content": reply})
         return reply
 
 
 class AgentSession:
-    """Orchestrates conversations between cookie-tracked agents."""
-    def __init__(self, session_name: str, tracker: AutomatedSessionTracker):
+    """Orchestrates conversations between AI agents powered by g4f."""
+    
+    def __init__(self, session_name: str, model: str = "gpt-4"):
         self.session_name = session_name
-        self.tracker = tracker
+        self.model = model
         self.agents = []
-
+        print(f"✓ Session initialized: '{self.session_name}' using model: {self.model}")
+    
     def add_agent(self, agent: AIAgent):
+        """Register an agent for this session."""
         self.agents.append(agent)
-        print(f"🔄 Registered Tracker Agent: [{agent.name}] Target: ({agent.target_model})")
-
+        print(f"🔄 Registered Agent: [{agent.name}] Role: {agent.role}")
+    
     def run_discussion(self, topic: str, rounds: int = 1):
-        print(f"\n🚀 Session '{self.session_name}' Active\nTopic: {topic}\n" + "="*60)
+        """Run a multi-round discussion between agents on a given topic."""
+        print(f"\n🚀 Session '{self.session_name}' Active")
+        print(f"Topic: {topic}")
+        print(f"Rounds: {rounds}")
+        print("=" * 60)
         
         current_context = f"The active topic is: {topic}. Give your professional assessment."
         
-        for r in range(rounds):
+        for r in range(1, rounds + 1):
+            print(f"\n--- Round {r} ---")
             for agent in self.agents:
-                print(f"📡 {agent.name} is executing a cookie-authenticated request...")
+                print(f"📡 {agent.name} is thinking...")
                 response = agent.ask(current_context)
                 
                 print(f"\033[96m[{agent.name}]\033[0m: {response}\n")
                 
                 current_context = f"{agent.name} stated: '{response}'. Address this statement directly."
-                time.sleep(2) # Protect against rapid-fire IP ban rules
+                time.sleep(1)  # Rate limiting to be respectful
+        
+        print("=" * 60)
+        print("✓ Discussion complete!")
 
+
+# Optional: Alternative models available in g4f
+AVAILABLE_MODELS = {
+    "gpt-4": "OpenAI GPT-4",
+    "gpt-4o": "OpenAI GPT-4 Optimized",
+    "claude": "Anthropic Claude",
+    "gemini": "Google Gemini",
+    "llama": "Meta Llama",
+    "mistral": "Mistral AI",
+}
+
+
+def list_available_models() -> dict:
+    """Return available models in g4f."""
+    return AVAILABLE_MODELS
