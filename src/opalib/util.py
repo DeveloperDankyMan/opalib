@@ -7,9 +7,7 @@ import traceback
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from . import ieee754
-from .libdeflate import LibDeflate
-
+from . import ieee754, libdeflate as LibDeflate
 
 @dataclass
 class Vector3:
@@ -197,7 +195,7 @@ def read_a(data: Union[str, bytes], i: int) -> Tuple[Any, int]:
 
 
 def decode(value: Union[str, bytes]) -> bytes:
-    return LibDeflate.DecompressDeflate(decode_zeros(_to_bytes(value)))
+    return LibDeflate.decompress_deflate(decode_zeros(_to_bytes(value))) # LibDeflate.DecompressDeflate(decode_zeros(_to_bytes(value)))
 
 
 def decode_params(data: Union[str, bytes], i: int) -> Tuple[Dict[str, Any], int]:
@@ -338,7 +336,7 @@ def a2b(v: Any) -> bytes:
 
 
 def encode(value: Union[str, bytes]) -> bytes:
-    return encode_zeros(LibDeflate.CompressDeflate(_to_bytes(value), {"level": 9}))
+    return encode_zeros(LibDeflate.compress_deflate(_to_bytes(value), {"level": 9}))
 
 special = bytes([255])
 null = bytes([0])
