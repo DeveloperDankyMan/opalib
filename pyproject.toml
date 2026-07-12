@@ -25,6 +25,7 @@ urls = { "Repository" = "https://github.com/DeveloperDankyMan/opalib", "Homepage
 
 dependencies = [
     "requests",
+    "g4f",
 ]
 
 [build-system]
