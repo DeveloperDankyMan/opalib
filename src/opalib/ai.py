@@ -13,9 +13,8 @@ try:
 except ImportError:
     raise ImportError("g4f is required. Install it with: pip install g4f")
 
-
 class AIAgent:
-    """An AI Agent powered by g4f for free AI access without API keys."""
+    """An AI Agent powered by g4f supporting free AI access and function calling."""
     
     def __init__(self, name: str, role: str, target_model: str = "gpt-4"):
         self.name = name
@@ -29,27 +28,66 @@ class AIAgent:
             "role": "system", 
             "content": f"Your name is {self.name}. Your role: {self.role}. Stay in character."
         })
-    
-    def ask(self, message: str) -> str:
-        """Send a message and get a response from the AI."""
+
+    def ask(self, message: str, tools: Optional[List[Dict[str, Any]]] = None, available_functions: Optional[Dict[str, Callable]] = None) -> str:
+        """Send a message and get a response from the AI, handling function calls if provided."""
         self.chat_history.append({"role": "user", "content": message})
         
         try:
-            # Use g4f to get response (no API key needed)
-            response = self.client.chat.completions.create(
-                model=self.target_model,
-                messages=self.chat_history,
-                timeout=30
-            )
-            
-            reply = response.choices[0].message.content
-            
+            # Step 1: Send initial request to the model with tool definitions
+            kwargs = {
+                "model": self.target_model,
+                "messages": self.chat_history,
+                "timeout": 30
+            }
+            if tools:
+                kwargs["tools"] = tools
+                kwargs["tool_choice"] = "auto"
+
+            response = self.client.chat.completions.create(**kwargs)
+            message_obj = response.choices[0].message
+            reply = message_obj.content
+            tool_calls = getattr(message_obj, "tool_calls", None)
+
+            # Step 2: Check if the model decided to call a function
+            if tool_calls and available_functions:
+                # Save the model's intent to call a function to the history
+                self.chat_history.append(message_obj)
+                
+                for tool_call in tool_calls:
+                    function_name = tool_call.function.name
+                    
+                    if function_name in available_functions:
+                        import json
+                        # Parse arguments provided by the model
+                        function_args = json.loads(tool_call.function.arguments)
+                        
+                        # Execute the local Python function
+                        function_to_call = available_functions[function_name]
+                        function_response = function_to_call(**function_args)
+                        
+                        # Feed the function result back to the model
+                        self.chat_history.append({
+                            "tool_call_id": tool_call.id,
+                            "role": "tool",
+                            "name": function_name,
+                            "content": str(function_response),
+                        })
+                
+                # Step 3: Get a final text response from the model based on the function result
+                second_response = self.client.chat.completions.create(
+                    model=self.target_model,
+                    messages=self.chat_history,
+                    timeout=30
+                )
+                reply = second_response.choices[0].message.content
+
         except Exception as e:
             reply = f"⚠️ Error: {str(e)}"
-        
+            
+        # Update history with the final text reply
         self.chat_history.append({"role": "assistant", "content": reply})
         return reply
-
 
 class AgentSession:
     """Orchestrates conversations between AI agents powered by g4f."""
