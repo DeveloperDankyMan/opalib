@@ -6,7 +6,7 @@ Installation: pip install g4f
 """
 
 import time
-from typing import Optional
+from typing import Optional, List, Dict, Any, Callable
 
 try:
     from g4f.client import Client
